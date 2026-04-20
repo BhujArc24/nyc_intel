@@ -1,0 +1,781 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>NYC Intel — Your Friendly Guide to New York Data</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;0,9..144,900;1,9..144,400;1,9..144,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+<style>
+:root{
+  --sky:#4DA8E8;--sky2:#7FC1F0;--sky3:#B8DDF5;--sky-deep:#1E5B8E;
+  --sun:#FFD447;--sun2:#FFC107;--sun-soft:#FFF4C2;
+  --cream:#FFF9EF;--paper:#FFFFFF;--ink:#0F2540;--ink2:#3A5470;--ink3:#7B8FA8;--ink4:#B8C4D4;
+  --mint:#6BD1A8;--coral:#FF7A6B;--lilac:#B899E8;
+  --bdr:#E4EDF7;--bdr2:#D2E0EE;
+  --c1:#4DA8E8;--c2:#FFD447;--c3:#FF7A6B;--c4:#6BD1A8;--c5:#B899E8;--c6:#F8A15D;--c7:#5ECAD4;
+  --r:24px;--rs:14px;--rx:8px;
+  --sh:0 20px 60px -20px rgba(30,91,142,.2);--sh-lg:0 40px 100px -30px rgba(30,91,142,.3);--sh-sm:0 4px 20px -6px rgba(30,91,142,.15);
+  --fd:'Fraunces',Georgia,serif;--fb:'Plus Jakarta Sans',sans-serif;--fm:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+body{font-family:var(--fb);background:var(--cream);color:var(--ink);line-height:1.6;overflow-x:hidden;position:relative}
+::selection{background:var(--sun);color:var(--ink)}
+img{max-width:100%;display:block}
+
+/* Subtle paper texture */
+.atmosphere{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.atmo-grain{position:absolute;inset:0;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.hero-wrap,.section,#dashboard,.footer{position:relative;z-index:1}
+
+/* ============ HERO (skyline dominant) ============ */
+.hero-wrap{position:relative;min-height:100vh;overflow:hidden;background:#0F2540}
+.hero-bg{position:absolute;inset:0;background-image:url('https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Lower_Manhattan_from_Jersey_City_November_2014_panorama_3.jpg/2560px-Lower_Manhattan_from_Jersey_City_November_2014_panorama_3.jpg');background-size:cover;background-position:center center}
+.hero-bg::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,37,64,.5) 0%,rgba(15,37,64,.35) 40%,rgba(15,37,64,.55) 75%,rgba(255,249,239,.4) 95%,var(--cream) 100%)}
+.hero-bg::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 900px 550px at 50% 42%,transparent 0%,rgba(15,37,64,.4) 100%)}
+.sun{position:absolute;top:8%;right:10%;width:110px;height:110px;border-radius:50%;background:radial-gradient(circle,#FFE98A 0%,var(--sun) 45%,var(--sun2) 75%,transparent 100%);box-shadow:0 0 120px rgba(255,212,71,.8),0 0 60px rgba(255,193,7,.6);animation:pulse 4s ease-in-out infinite;z-index:2;pointer-events:none}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.06);opacity:.92}}
+
+.nav{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:24px 40px}
+.nav-brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:white}
+.nav-logo{width:42px;height:42px;background:var(--sun);border-radius:12px;display:grid;place-items:center;position:relative;transition:transform .3s;box-shadow:0 4px 20px rgba(255,212,71,.4)}
+.nav-logo::before{content:'';position:absolute;inset:4px;border:2px solid var(--ink);border-radius:8px}
+.nav-logo span{font-family:var(--fd);font-weight:900;color:var(--ink);font-size:1rem;position:relative}
+.nav-brand:hover .nav-logo{transform:rotate(-5deg)}
+.nav-title{font-family:var(--fd);font-size:1.4rem;font-weight:800;letter-spacing:-.5px;color:white;text-shadow:0 2px 10px rgba(0,0,0,.3)}
+.nav-title em{font-style:italic;font-weight:400;color:var(--sun)}
+.nav-links{display:flex;gap:8px;align-items:center}
+.nav-link{padding:9px 18px;border-radius:100px;font-size:.88rem;font-weight:600;color:rgba(255,255,255,.9);text-decoration:none;cursor:pointer;transition:all .25s;text-shadow:0 1px 4px rgba(0,0,0,.3)}
+.nav-link:hover{background:rgba(255,255,255,.15);color:var(--sun);backdrop-filter:blur(10px)}
+.nav-socs{display:flex;gap:8px;margin-left:12px}
+.nav-soc{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);display:grid;place-items:center;color:white;text-decoration:none;transition:all .3s;backdrop-filter:blur(10px)}
+.nav-soc:hover{background:var(--sun);color:var(--ink);transform:translateY(-2px);border-color:var(--sun)}
+.nav-soc svg{width:15px;height:15px}
+
+.hero{position:relative;z-index:5;max-width:1000px;margin:0 auto;padding:60px 40px 0;text-align:center}
+.hero-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:100px;background:rgba(255,255,255,.15);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.3);font-size:.78rem;font-weight:700;color:white;margin-bottom:32px;box-shadow:0 4px 20px rgba(0,0,0,.2);animation:fadeUp .8s .1s both;letter-spacing:.5px}
+.hero-pill::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 10px var(--mint);animation:pulse 2s infinite}
+.hero h1{font-family:var(--fd);font-size:clamp(3.2rem,7.5vw,6.5rem);font-weight:800;line-height:.95;letter-spacing:-3px;color:white;margin-bottom:24px;animation:fadeUp 1s .25s both;text-shadow:0 4px 30px rgba(0,0,0,.4),0 2px 10px rgba(0,0,0,.3)}
+.hero h1 em{font-style:italic;font-weight:400;color:var(--sun);position:relative;display:inline-block}
+.hero h1 em::after{content:'';position:absolute;bottom:8px;left:-4px;right:-4px;height:14px;background:var(--sun);z-index:-1;border-radius:4px;transform:skewX(-6deg);opacity:.3}
+.hero-sub{font-size:1.2rem;color:rgba(255,255,255,.95);max-width:580px;margin:0 auto 40px;line-height:1.7;font-weight:500;animation:fadeUp 1s .4s both;text-shadow:0 2px 15px rgba(0,0,0,.5)}
+.hero-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;animation:fadeUp 1s .55s both}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:16px 32px;border-radius:100px;font-family:var(--fb);font-size:.92rem;font-weight:700;cursor:pointer;text-decoration:none;transition:all .35s cubic-bezier(.16,1,.3,1);border:none;letter-spacing:.3px}
+.btn-primary{background:var(--sun);color:var(--ink);box-shadow:0 10px 30px -5px rgba(255,212,71,.6),0 0 0 0 rgba(255,212,71,.4)}
+.btn-primary:hover{transform:translateY(-3px);box-shadow:0 16px 40px -5px rgba(255,212,71,.7),0 0 0 8px rgba(255,212,71,.15)}
+.btn-secondary{background:rgba(255,255,255,.15);color:white;backdrop-filter:blur(16px);border:1.5px solid rgba(255,255,255,.4)}
+.btn-secondary:hover{background:white;color:var(--ink);transform:translateY(-3px);border-color:white}
+.btn svg{width:16px;height:16px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+
+.hero-stats{position:relative;z-index:5;max-width:1100px;margin:80px auto 0;padding:0 40px 80px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;animation:fadeUp 1s .75s both}
+.stat-card{background:rgba(255,255,255,.92);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.9);border-radius:20px;padding:24px;text-align:left;transition:all .4s cubic-bezier(.16,1,.3,1);position:relative;overflow:hidden;box-shadow:0 10px 40px -10px rgba(0,0,0,.25)}
+.stat-card:hover{transform:translateY(-6px);box-shadow:0 20px 60px -10px rgba(0,0,0,.35);background:white}
+.stat-card::before{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;opacity:.18;transition:transform .5s}
+.stat-card:nth-child(1)::before{background:var(--sky)}
+.stat-card:nth-child(2)::before{background:var(--sun)}
+.stat-card:nth-child(3)::before{background:var(--coral)}
+.stat-card:nth-child(4)::before{background:var(--mint)}
+.stat-card:hover::before{transform:scale(1.5)}
+.stat-icon{font-size:1.5rem;margin-bottom:10px;position:relative}
+.stat-val{font-family:var(--fd);font-size:2.2rem;font-weight:800;letter-spacing:-1.5px;color:var(--ink);position:relative}
+.stat-lbl{font-size:.78rem;font-weight:600;color:var(--ink3);margin-top:2px;position:relative}
+
+.hero-scroll{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);z-index:5;display:flex;flex-direction:column;align-items:center;gap:8px;animation:fadeUp 1s 1.2s both;cursor:pointer}
+.hero-scroll span{font-size:.7rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--ink2)}
+.scroll-arrow{width:20px;height:32px;border:2px solid var(--ink2);border-radius:12px;position:relative}
+.scroll-arrow::after{content:'';position:absolute;top:6px;left:50%;transform:translateX(-50%);width:3px;height:6px;background:var(--sun2);border-radius:2px;animation:scrolldot 2s ease-in-out infinite}
+@keyframes scrolldot{0%,100%{opacity:1;transform:translateX(-50%) translateY(0)}50%{opacity:.3;transform:translateX(-50%) translateY(10px)}}
+
+/* Section accents - skyline silhouettes */
+#datasets{position:relative}
+#datasets::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--sky2),transparent)}
+
+#howitworks{position:relative;background:linear-gradient(180deg,transparent 0%,rgba(30,91,142,.04) 50%,transparent 100%)}
+#howitworks::before{content:'';position:absolute;bottom:0;left:0;right:0;height:120px;pointer-events:none;z-index:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,90 L30,90 L30,75 L55,75 L55,60 L80,60 L80,85 L100,85 L100,70 L130,70 L130,55 L155,55 L155,40 L180,40 L180,70 L210,70 L210,50 L240,50 L240,80 L265,80 L265,45 L290,45 L290,30 L315,30 L315,65 L340,65 L340,80 L370,80 L370,55 L395,55 L395,75 L420,75 L420,40 L450,40 L450,65 L475,65 L475,50 L500,50 L500,85 L525,85 L525,70 L555,70 L555,45 L580,45 L580,25 L605,25 L605,60 L630,60 L630,80 L660,80 L660,55 L685,55 L685,35 L710,35 L710,70 L735,70 L735,50 L765,50 L765,75 L790,75 L790,40 L815,40 L815,60 L840,60 L840,85 L870,85 L870,55 L895,55 L895,30 L920,30 L920,65 L945,65 L945,45 L975,45 L975,75 L1000,75 L1000,55 L1025,55 L1025,40 L1050,40 L1050,70 L1080,70 L1080,50 L1105,50 L1105,80 L1130,80 L1130,60 L1155,60 L1155,35 L1180,35 L1180,65 L1210,65 L1210,45 L1235,45 L1235,75 L1260,75 L1260,55 L1290,55 L1290,30 L1315,30 L1315,70 L1340,70 L1340,50 L1365,50 L1365,80 L1395,80 L1395,60 L1420,60 L1420,75 L1440,75 L1440,120 Z' fill='%231E5B8E' opacity='.08'/%3E%3C/svg%3E");background-repeat:no-repeat;background-size:100% 100%;background-position:bottom}
+#howitworks>*{position:relative;z-index:1}
+
+#capabilities{position:relative}
+
+/* Dashboard gets a subtle city hint */
+#dashboard::after{content:'';position:absolute;top:0;left:0;right:0;height:80px;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 80' preserveAspectRatio='none'%3E%3Cpath d='M0,80 L0,60 L40,60 L40,45 L70,45 L70,55 L100,55 L100,35 L130,35 L130,50 L170,50 L170,30 L200,30 L200,45 L240,45 L240,55 L280,55 L280,40 L320,40 L320,25 L360,25 L360,50 L400,50 L400,35 L440,35 L440,55 L480,55 L480,40 L520,40 L520,60 L560,60 L560,45 L600,45 L600,30 L640,30 L640,55 L680,55 L680,40 L720,40 L720,50 L760,50 L760,35 L800,35 L800,55 L840,55 L840,45 L880,45 L880,60 L920,60 L920,40 L960,40 L960,30 L1000,30 L1000,50 L1040,50 L1040,35 L1080,35 L1080,55 L1120,55 L1120,45 L1160,45 L1160,60 L1200,60 L1200,40 L1240,40 L1240,55 L1280,55 L1280,30 L1320,30 L1320,50 L1360,50 L1360,45 L1400,45 L1400,55 L1440,55 L1440,80 Z' fill='%230F2540' opacity='.06'/%3E%3C/svg%3E");background-repeat:no-repeat;background-size:100% 100%}
+
+/* ============ SECTIONS ============ */
+.section{max-width:1200px;margin:0 auto;padding:120px 40px;opacity:0;transform:translateY(40px);transition:opacity .8s,transform .8s cubic-bezier(.16,1,.3,1)}
+.section.visible{opacity:1;transform:translateY(0)}
+.sec-tag{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:100px;background:var(--sky-deep);color:white;font-size:.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:20px}
+.sec-tag.yellow{background:var(--ink);color:var(--sun)}
+.sec-tag.coral{background:var(--coral);color:white}
+.sec-tag.mint{background:var(--mint);color:var(--ink)}
+.sec-h{font-family:var(--fd);font-size:clamp(2.4rem,5vw,4rem);font-weight:800;line-height:1.05;letter-spacing:-2px;margin-bottom:20px;max-width:760px}
+.sec-h em{font-style:italic;font-weight:400;color:var(--sky-deep)}
+.sec-p{font-size:1.1rem;color:var(--ink2);max-width:620px;line-height:1.75;margin-bottom:56px}
+
+/* Dataset gallery */
+.gallery{display:grid;grid-template-columns:repeat(6,1fr);grid-auto-rows:minmax(180px,auto);gap:16px}
+.tile{position:relative;border-radius:var(--r);overflow:hidden;cursor:default;transition:all .5s cubic-bezier(.16,1,.3,1);box-shadow:var(--sh-sm)}
+.tile:hover{transform:translateY(-6px);box-shadow:var(--sh-lg)}
+.tile-illust{position:absolute;inset:0;overflow:hidden;transition:transform .8s cubic-bezier(.16,1,.3,1)}
+.tile-illust svg{width:100%;height:100%;display:block}
+.tile:hover .tile-illust{transform:scale(1.05)}
+.tile-overlay{position:absolute;inset:0;background:linear-gradient(180deg,transparent 0%,transparent 45%,rgba(15,37,64,.55) 80%,rgba(15,37,64,.9) 100%)}
+.tile-content{position:absolute;inset:0;padding:22px;display:flex;flex-direction:column;justify-content:flex-end;color:white;z-index:2}
+.tile-num{position:absolute;top:18px;left:22px;font-family:var(--fd);font-size:.75rem;font-weight:600;letter-spacing:2px;color:var(--sun);background:rgba(15,37,64,.5);padding:4px 10px;border-radius:100px;backdrop-filter:blur(8px)}
+.tile-title{font-family:var(--fd);font-size:1.3rem;font-weight:800;margin-bottom:4px;letter-spacing:-.5px}
+.tile-desc{font-size:.82rem;opacity:.9;line-height:1.5;font-weight:400}
+.tile.t1{grid-column:span 3;grid-row:span 2}
+.tile.t2{grid-column:span 3;grid-row:span 1}
+.tile.t3{grid-column:span 2;grid-row:span 1}
+.tile.t4{grid-column:span 2;grid-row:span 2}
+.tile.t5{grid-column:span 2;grid-row:span 1}
+.tile.t6{grid-column:span 4;grid-row:span 1}
+
+/* How it works */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;position:relative}
+.steps::before{content:'';position:absolute;top:40px;left:8%;right:8%;height:2px;background:repeating-linear-gradient(90deg,var(--ink4) 0,var(--ink4) 8px,transparent 8px,transparent 16px);z-index:0}
+.step{background:var(--paper);border:1px solid var(--bdr);border-radius:var(--r);padding:28px;position:relative;z-index:1;transition:all .4s cubic-bezier(.16,1,.3,1)}
+.step:hover{transform:translateY(-6px);box-shadow:var(--sh);border-color:var(--sky2)}
+.step-n{width:48px;height:48px;border-radius:50%;background:var(--sun);color:var(--ink);display:grid;place-items:center;font-family:var(--fd);font-size:1.2rem;font-weight:800;margin-bottom:20px;box-shadow:0 8px 20px -5px rgba(255,212,71,.6)}
+.step:nth-child(2) .step-n{background:var(--sky)}
+.step:nth-child(3) .step-n{background:var(--coral);color:white}
+.step:nth-child(4) .step-n{background:var(--mint);color:var(--ink)}
+.step h3{font-family:var(--fd);font-size:1.2rem;font-weight:700;margin-bottom:10px;letter-spacing:-.3px}
+.step p{font-size:.88rem;color:var(--ink2);line-height:1.65}
+
+/* Capabilities */
+.caps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.cap{background:var(--paper);border:1px solid var(--bdr);border-radius:var(--r);padding:32px;transition:all .4s cubic-bezier(.16,1,.3,1);position:relative;overflow:hidden}
+.cap.feature{background:linear-gradient(135deg,var(--sky-deep) 0%,#2B6BA0 100%);color:white;grid-column:span 3}
+.cap.accent{background:var(--sun-soft);border-color:var(--sun)}
+.cap.sky{background:linear-gradient(135deg,#E8F3FC 0%,#D2E7F6 100%);border-color:var(--sky2)}
+.cap.coral{background:linear-gradient(135deg,#FFF0ED 0%,#FFE0DB 100%);border-color:#FFB5AB}
+.cap.mint{background:linear-gradient(135deg,#EAF8F1 0%,#D5F0E2 100%);border-color:#9FDEC2}
+.cap:hover{transform:translateY(-4px);box-shadow:var(--sh)}
+.cap h3{font-family:var(--fd);font-size:1.3rem;font-weight:800;margin-bottom:12px;letter-spacing:-.5px}
+.cap.feature h3{font-size:2rem;line-height:1.1;margin-bottom:16px}
+.cap p{font-size:.92rem;color:var(--ink2);line-height:1.7}
+.cap.feature p{color:rgba(255,255,255,.9);font-size:1.05rem;max-width:640px}
+.cap-example{margin-top:16px;padding:14px 16px;background:rgba(255,255,255,.12);border:1px solid rgba(255,212,71,.3);border-radius:var(--rs);font-family:var(--fm);font-size:.82rem;color:var(--sun);font-style:italic;display:inline-block}
+.cap-icon{width:44px;height:44px;border-radius:12px;background:var(--sun);color:var(--ink);display:grid;place-items:center;margin-bottom:16px}
+.cap.feature .cap-icon{background:var(--sun);color:var(--ink)}
+.cap.sky .cap-icon{background:var(--sky);color:white}
+.cap.coral .cap-icon{background:var(--coral);color:white}
+.cap.mint .cap-icon{background:var(--mint);color:var(--ink)}
+.cap-icon svg{width:20px;height:20px}
+
+/* ============ DASHBOARD ============ */
+#dashboard{background:linear-gradient(180deg,rgba(255,249,239,.4) 0%,rgba(240,246,251,.6) 100%);padding:100px 0 60px;position:relative;backdrop-filter:blur(2px)}
+#dashboard::before{content:'';position:absolute;top:0;left:0;right:0;height:200px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 200'%3E%3Cpath d='M0,120 C240,40 480,160 720,100 C960,40 1200,140 1440,80 L1440,200 L0,200 Z' fill='%23FFD447' opacity='.08'/%3E%3Cpath d='M0,140 C200,80 440,180 720,120 C1000,60 1240,160 1440,100 L1440,200 L0,200 Z' fill='%234DA8E8' opacity='.06'/%3E%3C/svg%3E") no-repeat center/cover;pointer-events:none}
+.dash-hero{max-width:1200px;margin:0 auto;padding:0 40px 40px;text-align:center;position:relative;z-index:1}
+.dash-tag{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:100px;background:var(--ink);color:var(--sun);font-size:.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:20px}
+.dash-h{font-family:var(--fd);font-size:clamp(2.4rem,4.5vw,3.5rem);font-weight:800;letter-spacing:-2px;margin-bottom:16px;line-height:1.05}
+.dash-h em{font-style:italic;font-weight:400;color:var(--sky-deep)}
+.dash-sub{font-size:1.05rem;color:var(--ink2);max-width:540px;margin:0 auto}
+
+.main-content{max-width:1280px;margin:0 auto;padding:0 40px;position:relative;z-index:1}
+.query-card{background:var(--paper);border:1px solid var(--bdr);border-radius:var(--r);padding:32px;box-shadow:var(--sh);margin-bottom:40px;transition:all .3s}
+.query-card:focus-within{border-color:var(--sky);box-shadow:0 0 0 4px rgba(77,168,232,.12),var(--sh)}
+.query-label{display:flex;align-items:center;gap:10px;font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);margin-bottom:16px}
+.query-label::before{content:'✦';color:var(--sun2)}
+.query-input-row{display:flex;gap:12px;align-items:stretch}
+.query-input{flex:1;background:#F8FBFE;border:1px solid var(--bdr);border-radius:var(--rs);color:var(--ink);font-family:var(--fb);font-size:1.02rem;font-weight:400;padding:18px 22px;outline:none;resize:none;transition:all .25s;line-height:1.5}
+.query-input::placeholder{color:var(--ink4)}
+.query-input:focus{border-color:var(--sky);background:white}
+.query-submit{padding:0 30px;background:var(--ink);color:var(--sun);border:none;border-radius:var(--rs);font-family:var(--fb);font-size:.9rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all .3s;white-space:nowrap;box-shadow:0 8px 24px -8px rgba(15,37,64,.5)}
+.query-submit:hover{transform:translateY(-2px);box-shadow:0 12px 30px -8px rgba(15,37,64,.6)}
+.query-submit:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.query-submit svg{width:16px;height:16px}
+
+.chips-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.chip{padding:9px 18px;border-radius:100px;background:#F0F6FB;border:1px solid var(--bdr);color:var(--ink2);font-family:var(--fb);font-size:.82rem;font-weight:500;cursor:pointer;transition:all .25s}
+.chip:hover{background:var(--sun);border-color:var(--sun2);color:var(--ink);transform:translateY(-1px)}
+
+.status-bar{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:20px}
+.status-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 13px;border-radius:100px;background:rgba(107,209,168,.12);border:1px solid rgba(107,209,168,.3);font-size:.7rem;font-weight:600;letter-spacing:.5px;color:#2E9170;transition:all .3s}
+.status-badge.loading{background:rgba(255,212,71,.15);border-color:var(--sun);color:#A07D00}
+.status-badge.error{background:rgba(255,122,107,.12);border-color:var(--coral);color:#C14230}
+.status-dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 2s infinite}
+
+.results-area{display:none}.results-area.visible{display:block;animation:fadeUp .6s ease-out both}
+
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:40px}
+.kpi-card{background:var(--paper);border:1px solid var(--bdr);border-radius:var(--r);padding:24px;transition:all .35s cubic-bezier(.16,1,.3,1);position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--kpi-color,var(--sky))}
+.kpi-card:hover{transform:translateY(-4px);box-shadow:var(--sh)}
+.kpi-value{font-family:var(--fd);font-size:2.2rem;font-weight:800;color:var(--ink);letter-spacing:-1px;margin-bottom:4px}
+.kpi-label{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--ink3)}
+
+.sec-div{display:flex;align-items:center;gap:16px;margin:44px 0 24px}
+.sec-div::before,.sec-div::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.sec-div span{font-family:var(--fd);font-size:.82rem;font-weight:600;font-style:italic;color:var(--ink3);letter-spacing:.5px}
+
+.answer-card{background:linear-gradient(135deg,var(--sun-soft) 0%,#FFF9EF 100%);border:1px solid var(--sun);border-radius:var(--r);padding:32px 36px;margin-bottom:32px;position:relative;overflow:hidden}
+.answer-card::before{content:'💡';position:absolute;top:20px;right:24px;font-size:2rem;opacity:.3}
+.answer-label{font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#A07D00;margin-bottom:12px}
+.answer-text{font-size:1.02rem;line-height:1.85;color:var(--ink);font-weight:400}
+.answer-text strong{color:var(--sky-deep);font-weight:700}
+
+.map-card{background:var(--paper);border:1px solid var(--bdr);border-radius:var(--r);margin-bottom:32px;overflow:hidden;box-shadow:var(--sh-sm);display:none}
+.map-card.visible{display:block;animation:fadeUp .5s ease-out both}
+.map-card-header{display:flex;align-items:center;justify-content:space-between;padding:18px 26px;background:#F8FBFE;border-bottom:1px solid var(--bdr)}
+.map-card-title{font-family:var(--fd);font-size:1rem;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:10px}
+.map-card-title svg{width:18px;height:18px;color:var(--sky)}
+.map-card-badge{font-size:.72rem;padding:4px 12px;border-radius:100px;background:var(--sky);color:white;font-weight:600}
+.map-container{height:500px;width:100%}
+.map-legend{padding:14px 26px;background:#F8FBFE;border-top:1px solid var(--bdr);display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.map-legend-item{display:flex;align-items:center;gap:7px;font-size:.78rem;color:var(--ink2);font-weight:500}
+.map-legend-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.map-legend-bar{display:flex;align-items:center;gap:4px;font-size:.7rem;color:var(--ink3)}
+.map-legend-gradient{width:120px;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--mint),var(--sun2),var(--coral))}
+.leaflet-container{background:#EAF2F9!important;font-family:var(--fb)!important}
+.leaflet-popup-content-wrapper{background:var(--paper)!important;color:var(--ink)!important;border-radius:var(--rs)!important;box-shadow:var(--sh)!important}
+.leaflet-popup-content{font-family:var(--fb)!important;font-size:.84rem!important;margin:14px 18px!important}
+.map-popup-title{font-family:var(--fd);font-weight:800;color:var(--sky-deep);margin-bottom:4px;font-size:.95rem}
+.map-popup-stat{color:var(--ink2);font-size:.8rem}
+.map-popup-stat strong{color:var(--ink);font-family:var(--fm)}
+
+.sql-card{background:var(--paper);border:1px solid var(--bdr);border-radius:var(--r);margin-bottom:32px;overflow:hidden;box-shadow:var(--sh-sm)}
+.sql-header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:#F8FBFE;border-bottom:1px solid var(--bdr);cursor:pointer;user-select:none}
+.sql-header:hover{background:#F0F6FB}
+.sql-header-left{display:flex;align-items:center;gap:10px;font-size:.85rem;font-weight:600;color:var(--ink2)}
+.sql-header-left svg{width:16px;height:16px;color:var(--sky)}
+.sql-toggle-icon{font-size:.75rem;color:var(--ink3)}
+.sql-body{display:none;padding:20px 24px;background:#FAFCFE}
+.sql-body.open{display:block}
+.sql-code{font-family:var(--fm);font-size:.82rem;line-height:1.8;color:var(--ink2);white-space:pre-wrap;word-break:break-all}
+.sql-code .kw{color:var(--sky-deep);font-weight:600}
+
+.viz-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:32px}
+.viz-card{background:var(--paper);border:1px solid var(--bdr);border-radius:var(--r);padding:26px;box-shadow:var(--sh-sm);min-height:340px;display:flex;flex-direction:column;transition:all .3s}
+.viz-card:hover{box-shadow:var(--sh);border-color:var(--sky2)}
+.viz-card.fw{grid-column:1/-1}
+.viz-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.viz-card-title{font-family:var(--fd);font-size:.95rem;font-weight:700;color:var(--ink)}
+.viz-card-badge{font-size:.68rem;padding:4px 11px;border-radius:100px;background:var(--sun-soft);color:#A07D00;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.viz-chart-container{flex:1;position:relative;min-height:250px}
+.viz-chart-container canvas{max-height:100%}
+
+.table-card{background:var(--paper);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh-sm);margin-bottom:32px}
+.table-header{display:flex;align-items:center;justify-content:space-between;padding:16px 26px;background:#F8FBFE;border-bottom:1px solid var(--bdr)}
+.table-title{font-family:var(--fd);font-size:.95rem;font-weight:700;color:var(--ink)}
+.table-count{font-size:.72rem;padding:4px 11px;border-radius:100px;background:var(--sky);color:white;font-weight:600;margin-left:10px}
+.table-scroll{overflow-x:auto;max-height:480px;overflow-y:auto}
+.data-table{width:100%;border-collapse:collapse;font-size:.85rem}
+.data-table thead{position:sticky;top:0;z-index:2}
+.data-table th{background:#F0F6FB;padding:13px 18px;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink3);white-space:nowrap;border-bottom:1px solid var(--bdr)}
+.data-table td{padding:13px 18px;border-bottom:1px solid var(--bdr);color:var(--ink2);font-family:var(--fm);font-size:.8rem;white-space:nowrap}
+.data-table tbody tr{transition:background .15s}
+.data-table tbody tr:hover{background:#F8FBFE}
+.cell-number{color:var(--sky-deep);font-weight:500}
+.cell-highlight{color:var(--ink);font-weight:600;font-family:var(--fb)}
+
+.loading-overlay{display:none;padding:80px 40px;text-align:center}
+.loading-overlay.visible{display:block;animation:fadeUp .4s ease-out both}
+.loader-ring{width:52px;height:52px;border:3px solid var(--bdr);border-top-color:var(--sun2);border-right-color:var(--sky);border-radius:50%;animation:sp 1s linear infinite;margin:0 auto 24px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.loading-title{font-family:var(--fd);font-size:1.35rem;font-weight:700;margin-bottom:8px;color:var(--ink)}
+.loading-sub{font-size:.92rem;color:var(--ink3)}
+.loading-steps{margin-top:28px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.loading-step{display:flex;align-items:center;gap:10px;font-size:.82rem;color:var(--ink4);transition:color .3s;font-weight:500}
+.loading-step.active{color:var(--sky-deep)}
+.loading-step.done{color:#2E9170}
+.loading-step-icon{width:18px;height:18px;border-radius:50%;border:2px solid currentColor;display:grid;place-items:center;font-size:.55rem}
+.loading-step.done .loading-step-icon::after{content:'✓'}
+.loading-step.active .loading-step-icon{animation:pulse 1s infinite}
+
+.error-card{display:none;background:#FFF0ED;border:1px solid var(--coral);border-radius:var(--r);padding:24px 28px;margin-bottom:32px}
+.error-card.visible{display:flex;gap:16px;align-items:flex-start;animation:fadeUp .4s ease-out both}
+.error-icon{width:40px;height:40px;border-radius:50%;background:var(--coral);color:white;display:grid;place-items:center;flex-shrink:0;font-weight:700;font-size:1.1rem}
+.error-text h4{color:#C14230;font-size:.95rem;margin-bottom:4px;font-weight:700;font-family:var(--fd)}
+.error-text p{color:var(--ink2);font-size:.88rem}
+
+.empty-state{text-align:center;padding:90px 40px}
+.empty-icon{width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,var(--sky3),var(--sun-soft));display:grid;place-items:center;margin:0 auto 24px;font-size:2.2rem}
+.empty-state h3{font-family:var(--fd);font-size:1.4rem;font-weight:800;margin-bottom:8px;letter-spacing:-.5px}
+.empty-state p{color:var(--ink3);font-size:.95rem}
+
+/* Footer */
+.footer{background:var(--ink);color:white;padding:60px 40px 30px;margin-top:80px;position:relative;overflow:hidden}
+.footer::before{content:'';position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(90deg,var(--sky),var(--sun),var(--coral),var(--mint),var(--lilac))}
+.footer-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:40px;margin-bottom:40px}
+.footer-brand h3{font-family:var(--fd);font-size:1.6rem;font-weight:800;margin-bottom:12px}
+.footer-brand h3 em{color:var(--sun);font-style:italic;font-weight:400}
+.footer-brand p{color:rgba(255,255,255,.7);font-size:.92rem;max-width:360px;line-height:1.7}
+.footer-col h4{font-family:var(--fd);font-size:.95rem;font-weight:700;margin-bottom:14px;color:var(--sun)}
+.footer-col ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+.footer-col a{color:rgba(255,255,255,.7);font-size:.88rem;text-decoration:none;transition:color .2s;display:inline-flex;align-items:center;gap:8px}
+.footer-col a:hover{color:var(--sun)}
+.footer-col a svg{width:14px;height:14px}
+.footer-bottom{max-width:1200px;margin:0 auto;padding-top:30px;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center;font-size:.8rem;color:rgba(255,255,255,.5);flex-wrap:wrap;gap:12px}
+.footer-tech{display:flex;gap:16px;flex-wrap:wrap}
+.footer-tech span{display:flex;align-items:center;gap:6px;font-weight:500}
+.footer-tech .dot{width:6px;height:6px;border-radius:50%;background:var(--sun)}
+
+/* History panel */
+.history-panel{position:fixed;top:0;right:-420px;bottom:0;width:400px;background:var(--paper);border-left:1px solid var(--bdr);z-index:200;transition:right .5s cubic-bezier(.16,1,.3,1);overflow-y:auto;padding:32px;box-shadow:var(--sh-lg)}
+.history-panel.open{right:0}
+.history-panel-title{font-family:var(--fd);font-size:1.4rem;font-weight:800;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between}
+.history-close{width:34px;height:34px;border-radius:50%;border:1px solid var(--bdr);background:transparent;color:var(--ink2);cursor:pointer;display:grid;place-items:center;font-size:1rem;transition:all .2s}
+.history-close:hover{background:var(--ink);color:var(--sun);border-color:var(--ink)}
+.history-item{padding:16px;border:1px solid var(--bdr);border-radius:var(--rs);margin-bottom:10px;cursor:pointer;transition:all .3s}
+.history-item:hover{border-color:var(--sky);background:#F8FBFE;transform:translateX(-3px)}
+.history-item-q{font-size:.88rem;color:var(--ink);margin-bottom:5px;font-weight:500}
+.history-item-time{font-size:.7rem;color:var(--ink3);font-family:var(--fm)}
+.history-empty{text-align:center;color:var(--ink4);font-size:.88rem;padding:40px 0;font-style:italic}
+
+@media(max-width:1024px){
+  .gallery{grid-template-columns:repeat(4,1fr)}
+  .tile.t1,.tile.t6{grid-column:span 4}
+  .tile.t2,.tile.t4{grid-column:span 2}
+  .tile.t3,.tile.t5{grid-column:span 2}
+  .caps{grid-template-columns:1fr 1fr}
+  .cap.feature{grid-column:span 2;grid-row:auto}
+  .steps{grid-template-columns:1fr 1fr}
+  .steps::before{display:none}
+  .hero-stats{grid-template-columns:1fr 1fr}
+  .footer-inner{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  .nav{padding:16px 20px;flex-wrap:wrap;gap:12px}
+  .nav-links{display:none}
+  .hero{padding:40px 20px 0}
+  .hero-stats{padding:0 20px;grid-template-columns:1fr 1fr;gap:10px}
+  .stat-card{padding:18px}
+  .stat-val{font-size:1.7rem}
+  .section{padding:70px 20px}
+  .gallery{grid-template-columns:1fr;grid-auto-rows:200px}
+  .tile.t1,.tile.t2,.tile.t3,.tile.t4,.tile.t5,.tile.t6{grid-column:span 1;grid-row:span 1}
+  .caps{grid-template-columns:1fr}
+  .cap.feature{grid-column:span 1}
+  .steps{grid-template-columns:1fr}
+  .main-content{padding:0 20px}
+  .query-card{padding:22px}
+  .query-input-row{flex-direction:column}
+  .query-submit{justify-content:center;padding:16px}
+  .viz-grid{grid-template-columns:1fr}
+  .map-container{height:320px}
+  .sun{width:60px;height:60px;top:8%;right:6%}
+}
+</style>
+</head>
+<body>
+
+<div class="atmosphere">
+  <div class="atmo-grain"></div>
+</div>
+
+<!-- ========== HERO ========== -->
+<div class="hero-wrap">
+  <div class="hero-bg"></div>
+  <div class="sun"></div>
+
+  <nav class="nav">
+    <a href="#" class="nav-brand" onclick="event.preventDefault()">
+      <div class="nav-logo"><span>N</span></div>
+      <div class="nav-title">NYC <em>Intel</em></div>
+    </a>
+    <div class="nav-links">
+      <a class="nav-link" href="#datasets">Data</a>
+      <a class="nav-link" href="#howitworks">How it works</a>
+      <a class="nav-link" href="#dashboard">Explore</a>
+      <div class="nav-socs">
+        <a href="https://www.linkedin.com/in/archit-bhujang-840b63217/" target="_blank" class="nav-soc" title="LinkedIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></a>
+        <a href="https://github.com/BhujArc24" target="_blank" class="nav-soc" title="GitHub"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg></a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-pill">Live · Querying NYC Open Data</div>
+    <h1>Ask New York <em>anything.</em></h1>
+    <p class="hero-sub">A friendly window into the city's data — crime, transit, vulnerability, and more. Just type a question, get charts and maps back in seconds.</p>
+    <div class="hero-cta">
+      <a href="#dashboard" class="btn btn-primary">Start exploring <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+      <a href="#howitworks" class="btn btn-secondary">How it works</a>
+    </div>
+  </section>
+
+  <div class="hero-stats">
+    <div class="stat-card"><div class="stat-icon">🚨</div><div class="stat-val">579K+</div><div class="stat-lbl">Crime records</div></div>
+    <div class="stat-card"><div class="stat-icon">🚌</div><div class="stat-val">3,381</div><div class="stat-lbl">Bus stops</div></div>
+    <div class="stat-card"><div class="stat-icon">📍</div><div class="stat-val">178</div><div class="stat-lbl">ZIP codes</div></div>
+    <div class="stat-card"><div class="stat-icon">🗽</div><div class="stat-val">5</div><div class="stat-lbl">Datasets linked</div></div>
+  </div>
+</div>
+
+<!-- ========== DATASETS ========== -->
+<section class="section" id="datasets">
+  <div class="sec-tag">The Data</div>
+  <h2 class="sec-h">Five datasets, <em>one city.</em></h2>
+  <p class="sec-p">Every table joins through ZIP code, so you can ask questions that stitch crime, transit, grocery access, and demographics together in a single breath.</p>
+
+  <div class="gallery">
+    <div class="tile t1" style="background:linear-gradient(135deg,#FF9080 0%,#FF7A6B 50%,#E85A4F 100%)">
+      <div class="tile-illust">
+        <svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+          <defs><radialGradient id="g1" cx="50%" cy="30%"><stop offset="0%" stop-color="#FFB8AC" stop-opacity=".6"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs>
+          <rect width="300" height="200" fill="url(#g1)"/>
+          <g opacity=".85">
+            <rect x="30" y="80" width="22" height="90" fill="#0F2540" opacity=".8"/>
+            <rect x="56" y="50" width="26" height="120" fill="#0F2540" opacity=".9"/>
+            <rect x="86" y="70" width="20" height="100" fill="#0F2540" opacity=".75"/>
+            <rect x="110" y="40" width="30" height="130" fill="#0F2540"/>
+            <rect x="144" y="60" width="22" height="110" fill="#0F2540" opacity=".85"/>
+            <rect x="170" y="30" width="28" height="140" fill="#0F2540"/>
+            <rect x="202" y="75" width="24" height="95" fill="#0F2540" opacity=".8"/>
+            <rect x="230" y="55" width="20" height="115" fill="#0F2540" opacity=".9"/>
+            <rect x="254" y="80" width="22" height="90" fill="#0F2540" opacity=".75"/>
+          </g>
+          <g fill="#FFD447"><rect x="62" y="70" width="3" height="4"/><rect x="68" y="80" width="3" height="4"/><rect x="118" y="60" width="3" height="4"/><rect x="125" y="90" width="3" height="4"/><rect x="178" y="50" width="3" height="4"/><rect x="185" y="100" width="3" height="4"/><rect x="234" y="75" width="3" height="4"/></g>
+          <circle cx="80" cy="40" r="18" fill="#FF4444" opacity=".9"/>
+          <circle cx="80" cy="40" r="10" fill="#FFD447"/>
+          <text x="77" y="45" font-family="Arial" font-size="14" font-weight="900" fill="#0F2540">!</text>
+          <path d="M30 170 L270 170" stroke="#0F2540" stroke-width="2" opacity=".3"/>
+        </svg>
+      </div>
+      <div class="tile-overlay"></div>
+      <div class="tile-num">01 · Crime</div>
+      <div class="tile-content">
+        <div class="tile-title">NYPD Complaints</div>
+        <div class="tile-desc">579K+ records with type, severity, coordinates, and demographics across every borough.</div>
+      </div>
+    </div>
+    <div class="tile t2" style="background:linear-gradient(135deg,#C8B0F0 0%,#B899E8 50%,#9F7ED6 100%)">
+      <div class="tile-illust">
+        <svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+          <rect width="300" height="200" fill="url(#g2)"/>
+          <defs><radialGradient id="g2" cx="70%" cy="30%"><stop offset="0%" stop-color="#D8C4F4" stop-opacity=".5"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs>
+          <g opacity=".85"><rect x="40" y="60" width="50" height="110" fill="#4A3A6B" rx="3"/><rect x="95" y="80" width="45" height="90" fill="#4A3A6B" rx="3" opacity=".85"/><rect x="145" y="50" width="55" height="120" fill="#4A3A6B" rx="3"/><rect x="205" y="70" width="50" height="100" fill="#4A3A6B" rx="3" opacity=".9"/></g>
+          <g fill="#FFD447" opacity=".85"><rect x="50" y="75" width="6" height="8"/><rect x="62" y="75" width="6" height="8"/><rect x="74" y="75" width="6" height="8"/><rect x="50" y="95" width="6" height="8"/><rect x="62" y="95" width="6" height="8"/><rect x="74" y="95" width="6" height="8"/><rect x="105" y="95" width="5" height="7"/><rect x="115" y="95" width="5" height="7"/><rect x="125" y="95" width="5" height="7"/><rect x="105" y="115" width="5" height="7"/><rect x="125" y="115" width="5" height="7"/><rect x="155" y="65" width="7" height="9"/><rect x="168" y="65" width="7" height="9"/><rect x="181" y="65" width="7" height="9"/><rect x="155" y="85" width="7" height="9"/><rect x="181" y="85" width="7" height="9"/><rect x="155" y="105" width="7" height="9"/><rect x="168" y="105" width="7" height="9"/><rect x="215" y="85" width="6" height="8"/><rect x="227" y="85" width="6" height="8"/><rect x="239" y="85" width="6" height="8"/><rect x="215" y="105" width="6" height="8"/><rect x="239" y="105" width="6" height="8"/></g>
+          <circle cx="250" cy="40" r="15" fill="#FFD447" opacity=".9"/>
+          <path d="M245 40 L249 45 L256 37" stroke="#0F2540" stroke-width="2.5" fill="none"/>
+        </svg>
+      </div>
+      <div class="tile-overlay"></div>
+      <div class="tile-num">02 · Vulnerability</div>
+      <div class="tile-content">
+        <div class="tile-title">CDC Social Index</div>
+        <div class="tile-desc">Poverty, housing, and language data by ZIP code.</div>
+      </div>
+    </div>
+    <div class="tile t3" style="background:linear-gradient(135deg,#8DE0BD 0%,#6BD1A8 50%,#4BAF88 100%)">
+      <div class="tile-illust">
+        <svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+          <rect width="300" height="200" fill="url(#g3)"/>
+          <defs><radialGradient id="g3" cx="30%" cy="40%"><stop offset="0%" stop-color="#A8ECCB" stop-opacity=".5"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs>
+          <g opacity=".9">
+            <circle cx="70" cy="70" r="5" fill="#0F2540"/><circle cx="95" cy="65" r="5" fill="#0F2540"/><circle cx="120" cy="75" r="5" fill="#0F2540"/>
+            <circle cx="80" cy="90" r="5" fill="#0F2540"/><circle cx="105" cy="85" r="5" fill="#0F2540"/><circle cx="130" cy="95" r="5" fill="#0F2540"/>
+            <circle cx="90" cy="110" r="5" fill="#0F2540"/><circle cx="115" cy="105" r="5" fill="#0F2540"/><circle cx="140" cy="115" r="5" fill="#0F2540"/>
+            <circle cx="175" cy="80" r="5" fill="#FFD447"/><circle cx="200" cy="75" r="5" fill="#FFD447"/><circle cx="225" cy="85" r="5" fill="#FFD447"/>
+            <circle cx="185" cy="100" r="5" fill="#FFD447"/><circle cx="210" cy="95" r="5" fill="#FFD447"/><circle cx="235" cy="105" r="5" fill="#FFD447"/>
+            <circle cx="195" cy="120" r="5" fill="#FFD447"/><circle cx="220" cy="115" r="5" fill="#FFD447"/>
+          </g>
+          <path d="M100 150 Q150 130 200 150 T250 140" stroke="#0F2540" stroke-width="2.5" fill="none" opacity=".6"/>
+          <path d="M50 160 Q100 145 150 160 T250 155" stroke="#0F2540" stroke-width="2" fill="none" opacity=".4"/>
+        </svg>
+      </div>
+      <div class="tile-overlay"></div>
+      <div class="tile-num">03 · Population</div>
+      <div class="tile-content">
+        <div class="tile-title">Census ZIPs</div>
+        <div class="tile-desc">Modified ZIP geometry with population.</div>
+      </div>
+    </div>
+    <div class="tile t4" style="background:linear-gradient(135deg,#FFB88A 0%,#F8A15D 50%,#E8823C 100%)">
+      <div class="tile-illust">
+        <svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+          <rect width="300" height="200" fill="url(#g4)"/>
+          <defs><radialGradient id="g4" cx="50%" cy="30%"><stop offset="0%" stop-color="#FFD1AE" stop-opacity=".5"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs>
+          <rect x="60" y="100" width="180" height="15" fill="#0F2540" opacity=".7" rx="2"/>
+          <circle cx="95" cy="75" r="22" fill="#FF6B6B"/>
+          <circle cx="90" cy="70" r="5" fill="#FFB8AC" opacity=".6"/>
+          <path d="M95 53 Q100 48 103 52" stroke="#2E7D32" stroke-width="3" fill="none"/>
+          <circle cx="150" cy="80" r="18" fill="#FFD447"/>
+          <circle cx="146" cy="76" r="4" fill="#FFF4C2" opacity=".7"/>
+          <circle cx="195" cy="72" r="20" fill="#6BD1A8"/>
+          <ellipse cx="190" cy="67" rx="5" ry="3" fill="#A8ECCB" opacity=".7"/>
+          <path d="M195 52 L198 48" stroke="#2E7D32" stroke-width="3"/>
+          <ellipse cx="230" cy="82" rx="16" ry="20" fill="#E8823C"/>
+          <path d="M230 62 L232 58" stroke="#2E7D32" stroke-width="3"/>
+          <g fill="#FFD447"><circle cx="70" cy="145" r="3"/><circle cx="100" cy="150" r="3"/><circle cx="130" cy="147" r="3"/><circle cx="160" cy="152" r="3"/><circle cx="190" cy="148" r="3"/><circle cx="220" cy="150" r="3"/></g>
+        </svg>
+      </div>
+      <div class="tile-overlay"></div>
+      <div class="tile-num">04 · Groceries</div>
+      <div class="tile-content">
+        <div class="tile-title">Food Access</div>
+        <div class="tile-desc">Store locations citywide for identifying food deserts and surplus.</div>
+      </div>
+    </div>
+    <div class="tile t5" style="background:linear-gradient(135deg,#FFE066 0%,#FFD447 50%,#FFC107 100%)">
+      <div class="tile-illust">
+        <svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+          <rect width="300" height="200" fill="url(#g5)"/>
+          <defs><radialGradient id="g5" cx="50%" cy="30%"><stop offset="0%" stop-color="#FFF4C2" stop-opacity=".6"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs>
+          <path d="M20 140 L280 140" stroke="#0F2540" stroke-width="2" opacity=".4"/>
+          <g transform="translate(70,80)">
+            <rect x="0" y="0" width="140" height="55" rx="8" fill="#0F2540"/>
+            <rect x="8" y="8" width="30" height="25" rx="3" fill="#FFE066"/>
+            <rect x="44" y="8" width="30" height="25" rx="3" fill="#FFE066"/>
+            <rect x="80" y="8" width="30" height="25" rx="3" fill="#FFE066"/>
+            <rect x="116" y="8" width="18" height="25" rx="3" fill="#FF6B6B"/>
+            <circle cx="25" cy="58" r="10" fill="#2A2A2A"/>
+            <circle cx="25" cy="58" r="5" fill="#555"/>
+            <circle cx="115" cy="58" r="10" fill="#2A2A2A"/>
+            <circle cx="115" cy="58" r="5" fill="#555"/>
+          </g>
+          <circle cx="50" cy="160" r="4" fill="#0F2540" opacity=".6"/>
+          <circle cx="50" cy="160" r="8" fill="#0F2540" opacity=".2"/>
+          <circle cx="250" cy="160" r="4" fill="#0F2540" opacity=".6"/>
+          <circle cx="250" cy="160" r="8" fill="#0F2540" opacity=".2"/>
+          <circle cx="150" cy="165" r="4" fill="#0F2540" opacity=".6"/>
+          <circle cx="150" cy="165" r="8" fill="#0F2540" opacity=".2"/>
+        </svg>
+      </div>
+      <div class="tile-overlay"></div>
+      <div class="tile-num">05 · Transit</div>
+      <div class="tile-content">
+        <div class="tile-title">MTA Bus Stops</div>
+        <div class="tile-desc">3,381 stops with shelter and flood data.</div>
+      </div>
+    </div>
+    <div class="tile t6" style="background:linear-gradient(135deg,#7DC4F0 0%,#4DA8E8 50%,#1E5B8E 100%)">
+      <div class="tile-illust">
+        <svg viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+          <rect width="600" height="200" fill="url(#g6)"/>
+          <defs><radialGradient id="g6" cx="50%" cy="30%"><stop offset="0%" stop-color="#B8DDF5" stop-opacity=".4"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs>
+          <g stroke="#FFD447" stroke-width="2" fill="none" opacity=".6">
+            <line x1="100" y1="100" x2="200" y2="80"/><line x1="200" y1="80" x2="300" y2="110"/><line x1="300" y1="110" x2="400" y2="70"/><line x1="400" y1="70" x2="500" y2="100"/>
+            <line x1="100" y1="100" x2="300" y2="110"/><line x1="200" y1="80" x2="400" y2="70"/><line x1="300" y1="110" x2="500" y2="100"/>
+          </g>
+          <g fill="#FFD447">
+            <circle cx="100" cy="100" r="12"/><circle cx="200" cy="80" r="14"/><circle cx="300" cy="110" r="16"/><circle cx="400" cy="70" r="13"/><circle cx="500" cy="100" r="12"/>
+          </g>
+          <g fill="#0F2540" font-family="Arial" font-size="9" font-weight="900" text-anchor="middle">
+            <text x="100" y="103">10001</text><text x="200" y="83">11201</text><text x="300" y="113">10451</text><text x="400" y="73">11101</text><text x="500" y="103">10301</text>
+          </g>
+        </svg>
+      </div>
+      <div class="tile-overlay"></div>
+      <div class="tile-num">✦ The Join</div>
+      <div class="tile-content">
+        <div class="tile-title">Everything connects by ZIP code</div>
+        <div class="tile-desc">Spatial reverse-geocoding maps lat/lng to ZIPs so questions can cross datasets freely.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== HOW IT WORKS ========== -->
+<section class="section" id="howitworks">
+  <div class="sec-tag yellow">How it works</div>
+  <h2 class="sec-h">From <em>question</em> to insight in four steps.</h2>
+  <p class="sec-p">No SQL, no dashboards to build — the AI handles translation and the frontend handles the pretty pictures.</p>
+
+  <div class="steps">
+    <div class="step"><div class="step-n">1</div><h3>You ask</h3><p>Type a question in plain English. Anything from "top crimes in Queens" to "food deserts near high-crime ZIPs."</p></div>
+    <div class="step"><div class="step-n">2</div><h3>AI translates</h3><p>GPT-4o-mini turns it into a precise SQL query using the schema, join rules, and borough aliases.</p></div>
+    <div class="step"><div class="step-n">3</div><h3>Databricks runs it</h3><p>The query hits real NYC data with auto-retry if something edge-cases out.</p></div>
+    <div class="step"><div class="step-n">4</div><h3>Visuals appear</h3><p>Results render as KPI cards, maps, charts, and a plain-English summary — instantly.</p></div>
+  </div>
+</section>
+
+<!-- ========== CAPABILITIES ========== -->
+<section class="section" id="capabilities">
+  <div class="sec-tag coral">What you can ask</div>
+  <h2 class="sec-h">Questions that used to need <em>a team.</em></h2>
+  <p class="sec-p">Cross-dataset intelligence that links crime, vulnerability, transit, and demographics in a single query.</p>
+
+  <div class="caps">
+    <div class="cap feature">
+      <div class="cap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg></div>
+      <h3>Urban planning, made conversational.</h3>
+      <p>Which neighborhoods need safety lighting most? Which ZIPs face high crime and high vulnerability? The system ranks and maps the answer.</p>
+      <div class="cap-example">"Rank ZIPs by crime + vulnerability + population"</div>
+    </div>
+    <div class="cap sky">
+      <div class="cap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><polyline points="7 14 12 9 15 12 21 6"/></svg></div>
+      <h3>Social Equity</h3>
+      <p>Find areas with high vulnerability paired with high property crime.</p>
+    </div>
+    <div class="cap accent">
+      <div class="cap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+      <h3>Transit Access</h3>
+      <p>Rank bus routes by coverage density and grocery proximity.</p>
+    </div>
+    <div class="cap coral">
+      <div class="cap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></div>
+      <h3>Geographic Patterns</h3>
+      <p>Hotspots, heatmaps, and borough-level breakdowns on demand.</p>
+    </div>
+    <div class="cap mint">
+      <div class="cap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      <h3>Temporal Trends</h3>
+      <p>Track how crime categories shift by month, borough, or law class.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ========== DASHBOARD ========== -->
+<div id="dashboard">
+  <div class="dash-hero">
+    <div class="dash-tag">Ready when you are</div>
+    <h2 class="dash-h">Go ahead — <em>ask the city.</em></h2>
+    <p class="dash-sub">Start with a suggestion or type your own question below.</p>
+  </div>
+
+  <main class="main-content">
+    <div class="status-bar">
+      <div class="status-badge" id="sBadge"><div class="status-dot"></div><span id="sText">Ready</span></div>
+    </div>
+
+    <section class="query-card" id="qSec">
+      <div class="query-label">Your question</div>
+      <div class="query-input-row">
+        <textarea class="query-input" id="qIn" rows="1" placeholder='Try: "What are the top 5 crime types in Manhattan?"'></textarea>
+        <button class="query-submit" id="sBtn" onclick="go()">Ask <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+      </div>
+      <div class="chips-row">
+        <button class="chip" data-q="Which boroughs have the highest crime levels?">🏙️ Crime by Borough</button>
+        <button class="chip" data-q="Show the top 5 FIPS codes by social vulnerability score.">📊 Vulnerability Index</button>
+        <button class="chip" data-q="What are the top 5 most common crime types in New York?">🚨 Top Crime Types</button>
+        <button class="chip" data-q="How many bus routes are there per neighborhood?">🚌 Transit Density</button>
+        <button class="chip" data-q="Show crime counts by law category (felony, misdemeanor, violation).">⚖️ Crime Categories</button>
+        <button class="chip" data-q="Show the latest crimes with their coordinates in Manhattan.">📍 Crime Map</button>
+      </div>
+    </section>
+
+    <div class="loading-overlay" id="loadOv">
+      <div class="loader-ring"></div>
+      <div class="loading-title">Asking NYC…</div>
+      <div class="loading-sub">Translating your question and fetching the answer</div>
+      <div class="loading-steps">
+        <div class="loading-step active" id="ls1"><div class="loading-step-icon"></div>Reading your question</div>
+        <div class="loading-step" id="ls2"><div class="loading-step-icon"></div>Writing SQL</div>
+        <div class="loading-step" id="ls3"><div class="loading-step-icon"></div>Querying Databricks</div>
+        <div class="loading-step" id="ls4"><div class="loading-step-icon"></div>Drawing visuals</div>
+      </div>
+    </div>
+
+    <div class="error-card" id="errC"><div class="error-icon">!</div><div class="error-text"><h4>Hmm, that didn't work</h4><p id="errM"></p></div></div>
+
+    <div class="results-area" id="resA">
+      <div class="kpi-row" id="kpiR"></div>
+      <div class="map-card" id="mapC">
+        <div class="map-card-header">
+          <div class="map-card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg><span id="mapT">On the map</span></div>
+          <span class="map-card-badge" id="mapB">0 points</span>
+        </div>
+        <div class="map-container" id="mapDiv"></div>
+        <div class="map-legend" id="mapL"></div>
+      </div>
+      <div class="sec-div"><span>The takeaway</span></div>
+      <div class="answer-card"><div class="answer-label">Insight</div><div class="answer-text" id="ansT"></div></div>
+      <div class="sec-div"><span>Charts</span></div>
+      <div class="viz-grid" id="vizG"></div>
+      <div class="sql-card">
+        <div class="sql-header" onclick="toggleSql()">
+          <div class="sql-header-left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Behind the scenes · SQL</div>
+          <span class="sql-toggle-icon" id="sqlTI">▼</span>
+        </div>
+        <div class="sql-body" id="sqlB"><pre class="sql-code" id="sqlC"></pre></div>
+      </div>
+      <div class="sec-div"><span>Raw data</span></div>
+      <div class="table-card">
+        <div class="table-header">
+          <div><span class="table-title">Results</span><span class="table-count" id="rCnt">0 rows</span></div>
+        </div>
+        <div class="table-scroll" id="tScr"></div>
+      </div>
+    </div>
+
+    <div class="empty-state" id="empS">
+      <div class="empty-icon">🗽</div>
+      <h3>Your canvas awaits</h3>
+      <p>Pick a suggestion above or write your own question to get started.</p>
+    </div>
+  </main>
+</div>
+
+<!-- ========== FOOTER ========== -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <h3>NYC <em>Intel</em></h3>
+      <p>A friendlier way to explore New York's open data. Built with curiosity, coffee, and a lot of joins on ZIP code.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Built with</h4>
+      <ul>
+        <li>FastAPI + Databricks</li>
+        <li>GPT-4o-mini</li>
+        <li>Chart.js + Leaflet</li>
+        <li>Open NYC data</li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Connect</h4>
+      <ul>
+        <li><a href="https://www.linkedin.com/in/archit-bhujang-840b63217/" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>LinkedIn</a></li>
+        <li><a href="https://github.com/BhujArc24" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.6 0-12 5.4-12 12 0 5.3 3.4 9.8 8.2 11.4.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.4-1.3-1.8-1.3-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2.9-.3 2-.4 3-.4s2 .1 3 .4c2.3-1.5 3.3-1.2 3.3-1.2.7 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6 4.8-1.6 8.2-6.1 8.2-11.4 0-6.6-5.4-12-12-12z"/></svg>GitHub</a></li>
+        <li><a href="mailto:bhujang.archit@gmail.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>Email</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 NYC Intel · Built by Archit Bhujang</span>
+    <div class="footer-tech"><span><span class="dot"></span>Databricks</span><span><span class="dot"></span>GPT-4o</span><span><span class="dot"></span>FastAPI</span></div>
+  </div>
+</footer>
+
+<div class="history-panel" id="hPan"><div class="history-panel-title">Query History<button class="history-close" onclick="toggleHist()">&times;</button></div><div id="hList"><div class="history-empty">No queries yet.</div></div></div>
+
+<script>
+/* ===== SCROLL REVEAL ===== */
+const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')})},{threshold:.12});
+document.querySelectorAll('.section').forEach(s=>obs.observe(s));
+
+/* ===== APP ===== */
+const API="/ask",C=['#4DA8E8','#FFD447','#FF7A6B','#6BD1A8','#B899E8','#F8A15D','#5ECAD4','#FF9EAA','#84cc16','#A78BFA'];
+let chs=[],hist=[],lM=null,mLG=null;
+const BORO={manhattan:{lat:40.7831,lng:-73.9712},brooklyn:{lat:40.6782,lng:-73.9442},queens:{lat:40.7282,lng:-73.7949},bronx:{lat:40.8448,lng:-73.8648},'staten island':{lat:40.5795,lng:-74.1502}};
+const BA={manhattan:'manhattan','new york':'manhattan',mn:'manhattan',brooklyn:'brooklyn',bk:'brooklyn',kings:'brooklyn',queens:'queens',qn:'queens',qns:'queens',bronx:'bronx',bx:'bronx','the bronx':'bronx','staten island':'staten island',si:'staten island',richmond:'staten island'};
+const qIn=document.getElementById('qIn'),sBtn=document.getElementById('sBtn');
+qIn.addEventListener('input',function(){this.style.height='auto';this.style.height=this.scrollHeight+'px'});
+qIn.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();go()}});
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{qIn.value=c.dataset.q;qIn.dispatchEvent(new Event('input'));qIn.focus()}));
+function E(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function isN(v){return v!=null&&v!==''&&!isNaN(Number(v))}
+function fN(v){const n=Number(v);if(Number.isInteger(n)&&Math.abs(n)>=1e3)return n.toLocaleString();if(!Number.isInteger(n))return n.toLocaleString(undefined,{maximumFractionDigits:2});return String(n)}
+function hSQL(s){const kw=['SELECT','FROM','WHERE','GROUP','BY','ORDER','LIMIT','AS','COUNT','SUM','AVG','MAX','MIN','DESC','ASC','AND','OR','NOT','IN','LIKE','JOIN','ON','LEFT','RIGHT','INNER','HAVING','DISTINCT','CASE','WHEN','THEN','ELSE','END','BETWEEN','IS','NULL','TRY_CAST','DOUBLE','ANY_VALUE','TRY_DIVIDE','NULLIF'];let h=E(s);kw.forEach(k=>{h=h.replace(new RegExp('\\b('+k+')\\b','gi'),'<span class="kw">$1</span>')});return h}
+function setSt(t,x){document.getElementById('sBadge').className='status-badge '+(t==='loading'?'loading':t==='error'?'error':'');document.getElementById('sText').textContent=x}
+function showLoad(){document.getElementById('loadOv').classList.add('visible');document.getElementById('resA').classList.remove('visible');document.getElementById('empS').style.display='none';document.getElementById('errC').classList.remove('visible');['ls1','ls2','ls3','ls4'].forEach(id=>document.getElementById(id).className='loading-step');advS(0)}
+function advS(i){const ids=['ls1','ls2','ls3','ls4'];if(i>0)document.getElementById(ids[i-1]).className='loading-step done';if(i<4){document.getElementById(ids[i]).className='loading-step active';window._lt=setTimeout(()=>advS(i+1),800+Math.random()*400)}}
+function hideLoad(){document.getElementById('loadOv').classList.remove('visible');clearTimeout(window._lt)}
+function detectGeo(rows,cols){if(!rows.length)return null;const cl=cols.map(c=>c.toLowerCase());const g={type:null,pts:[],bd:[],latC:null,lngC:null,boroC:null,lblC:null,nCs:[]};const li=cl.findIndex(c=>c==='latitude'||c==='lat');const gi=cl.findIndex(c=>c==='longitude'||c==='lng'||c==='lon');if(li!==-1&&gi!==-1){g.latC=cols[li];g.lngC=cols[gi]}const bi=cl.findIndex(c=>c==='boro_nm'||c==='borough'||c==='boro'||c==='ntaname'||c==='neighborhood');if(bi!==-1)g.boroC=cols[bi];cols.forEach(c=>{if(c===g.latC||c===g.lngC)return;if(rows.map(r=>r[c]).filter(v=>isN(v)).length>rows.length*.6)g.nCs.push(c)});cols.forEach(c=>{if(c===g.latC||c===g.lngC||g.nCs.includes(c))return;if(!g.lblC)g.lblC=c});if(g.latC&&g.lngC){g.type='coords';rows.forEach(r=>{const la=parseFloat(r[g.latC]),lo=parseFloat(r[g.lngC]);if(!isNaN(la)&&!isNaN(lo)&&la&&lo){const st={};cols.forEach(c=>{if(c!==g.latC&&c!==g.lngC)st[c]=r[c]});g.pts.push({lat:la,lng:lo,label:g.lblC?String(r[g.lblC]||''):'',stats:st})}});return g.pts.length?g:null}if(g.boroC){g.type='boro';rows.forEach(r=>{const raw=String(r[g.boroC]||'').toLowerCase().trim();const k=BA[raw];if(k&&BORO[k]){const st={};g.nCs.forEach(c=>st[c]=r[c]);g.bd.push({lat:BORO[k].lat,lng:BORO[k].lng,label:r[g.boroC],key:k,stats:st})}});if(!g.bd.length){g.type='named';rows.forEach((r,i)=>{const st={};g.nCs.forEach(c=>st[c]=r[c]);g.bd.push({label:String(r[g.boroC]||'Loc '+(i+1)),stats:st})})}return g.bd.length?g:null}for(const c of cols){if(g.nCs.includes(c))continue;const mc=rows.filter(r=>BA[String(r[c]||'').toLowerCase().trim()]!==undefined).length;if(mc>=rows.length*.5&&mc>=2){g.type='boro';g.boroC=c;rows.forEach(r=>{const raw=String(r[c]||'').toLowerCase().trim();const k=BA[raw];if(k&&BORO[k]){const st={};g.nCs.forEach(nc=>st[nc]=r[nc]);g.bd.push({lat:BORO[k].lat,lng:BORO[k].lng,label:r[c],key:k,stats:st})}});return g.bd.length?g:null}}return null}
+function killMap(){if(lM){lM.remove();lM=null}mLG=null}
+function buildMap(geo){const mc=document.getElementById('mapC');if(!geo){mc.classList.remove('visible');return}killMap();mc.classList.add('visible');lM=L.map('mapDiv',{zoomControl:true,scrollWheelZoom:true}).setView([40.7128,-74.006],11);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OSM',maxZoom:18}).addTo(lM);mLG=L.layerGroup().addTo(lM);if(geo.type==='coords')buildCoords(geo);else if(geo.type==='boro')buildBoro(geo);else if(geo.type==='named')buildNamed(geo);setTimeout(()=>lM&&lM.invalidateSize(),250)}
+function buildCoords(g){const pts=g.pts;document.getElementById('mapT').textContent='Geographic Distribution';document.getElementById('mapB').textContent=pts.length+' pts';const bds=L.latLngBounds(pts.map(p=>[p.lat,p.lng]));pts.forEach((p,i)=>{const c=C[i%C.length];L.circleMarker([p.lat,p.lng],{radius:7,fillColor:c,color:'white',weight:2,fillOpacity:.9}).addTo(mLG).bindPopup('<div class="map-popup-title">'+E(p.label||'Pt '+(i+1))+'</div><div class="map-popup-stat">'+p.lat.toFixed(4)+', '+p.lng.toFixed(4)+'</div>'+Object.entries(p.stats).filter(([,v])=>v!=null&&v!=='').map(([k,v])=>'<div class="map-popup-stat">'+E(k)+': <strong>'+E(isN(v)?fN(v):v)+'</strong></div>').join(''))});if(pts.length>=5){const pn=g.nCs[0],hd=pts.map(p=>[p.lat,p.lng,pn?(parseFloat(p.stats[pn])||1):1]),mx=Math.max(...hd.map(d=>d[2]),1);L.heatLayer(hd.map(d=>[d[0],d[1],d[2]/mx]),{radius:25,blur:20,maxZoom:15,gradient:{.2:'#6BD1A8',.5:'#FFD447',.8:'#F8A15D',1:'#FF7A6B'}}).addTo(lM)}lM.fitBounds(bds,{padding:[40,40]});document.getElementById('mapL').innerHTML='<div class="map-legend-item"><div class="map-legend-dot" style="background:'+C[0]+'"></div>Points</div>'+(pts.length>=5?'<div class="map-legend-bar"><span>Low</span><div class="map-legend-gradient"></div><span>High</span></div>':'')}
+function buildBoro(g){const d=g.bd;document.getElementById('mapT').textContent='Borough View';document.getElementById('mapB').textContent=d.length+' boroughs';const pn=g.nCs[0];let mx=1;if(pn)mx=Math.max(...d.map(x=>Math.abs(parseFloat(x.stats[pn])||0)),1);const bds=L.latLngBounds(d.map(x=>[x.lat,x.lng]));d.forEach((b,i)=>{const v=pn?(parseFloat(b.stats[pn])||0):1,r=20+v/mx*40,c=C[i%C.length];L.circleMarker([b.lat,b.lng],{radius:r,fillColor:c,color:c,weight:2,fillOpacity:.35,opacity:.9}).addTo(mLG).bindPopup('<div class="map-popup-title">'+E(b.label)+'</div>'+Object.entries(b.stats).filter(([,v])=>v!=null).map(([k,v])=>'<div class="map-popup-stat">'+E(k)+': <strong>'+E(isN(v)?fN(v):v)+'</strong></div>').join(''));L.marker([b.lat,b.lng],{icon:L.divIcon({className:'',html:'<div style="color:#0F2540;font-family:Plus Jakarta Sans,sans-serif;font-size:.8rem;font-weight:700;text-align:center;text-shadow:0 2px 8px rgba(255,255,255,.9);white-space:nowrap;pointer-events:none">'+E(b.label)+'<br><span style="font-family:JetBrains Mono,monospace;font-size:.72rem;color:'+c+';font-weight:600">'+(pn?fN(v):'')+'</span></div>',iconSize:[120,40],iconAnchor:[60,20]}),interactive:false}).addTo(mLG)});lM.fitBounds(bds,{padding:[60,60]});document.getElementById('mapL').innerHTML=d.map((b,i)=>'<div class="map-legend-item"><div class="map-legend-dot" style="background:'+C[i%C.length]+'"></div>'+E(b.label)+(pn?': '+fN(b.stats[pn]):'')+'</div>').join('')}
+function buildNamed(g){const d=g.bd;document.getElementById('mapT').textContent='Locations';document.getElementById('mapB').textContent=d.length;const cL=40.7128,cN=-74.006,sp=.035,nc=Math.ceil(Math.sqrt(d.length)),pn=g.nCs[0];let mx=1;if(pn)mx=Math.max(...d.map(x=>Math.abs(parseFloat(x.stats[pn])||0)),1);d.forEach((x,i)=>{const la=cL+(Math.floor(i/nc)-nc/2)*sp,lo=cN+(i%nc-nc/2)*sp,v=pn?(parseFloat(x.stats[pn])||0):1,c=C[i%C.length];L.circleMarker([la,lo],{radius:12+v/mx*28,fillColor:c,color:c,weight:1.5,fillOpacity:.4,opacity:.85}).addTo(mLG);L.marker([la,lo],{icon:L.divIcon({className:'',html:'<div style="color:#0F2540;font-size:.72rem;font-weight:700;text-align:center;text-shadow:0 1px 6px rgba(255,255,255,.95);white-space:nowrap;pointer-events:none">'+E(x.label)+'</div>',iconSize:[100,20],iconAnchor:[50,10]}),interactive:false}).addTo(mLG)});lM.setView([cL,cN],12);document.getElementById('mapL').innerHTML='<div class="map-legend-item" style="color:var(--ink3)">Approx. positions</div>'}
+function analyzeData(rows,cols){if(!rows.length||!cols.length)return{type:'none'};const lC=[],nC=[];cols.forEach(c=>{if(rows.map(r=>r[c]).filter(v=>isN(v)).length>rows.length*.6)nC.push(c);else lC.push(c)});const rc=rows.length;if(rc===1&&nC.length>=1)return{type:'sr',lC,nC};if(lC.length>=1&&nC.length>=1){if(rc<=8)return{type:'bp',lCol:lC[0],nC,rc};if(rc<=25)return{type:'b',lCol:lC[0],nC,rc};return{type:'bl',lCol:lC[0],nC,rc}}if(nC.length>=1)return{type:'no',nC,rc};return{type:'to',lC,nC}}
+function killCharts(){chs.forEach(c=>c.destroy());chs=[]}
+function buildKPIs(rows,cols,nC){const kr=document.getElementById('kpiR');kr.innerHTML='';const kv=[];if(rows.length===1)nC.forEach(c=>kv.push({l:c,v:rows[0][c]}));else{nC.slice(0,3).forEach(c=>{const vs=rows.map(r=>Number(r[c])).filter(v=>!isNaN(v));kv.push({l:'Total '+c,v:vs.reduce((a,b)=>a+b,0)})});kv.push({l:'Rows',v:rows.length})}kv.slice(0,5).forEach((k,i)=>{const d=document.createElement('div');d.className='kpi-card';d.style.setProperty('--kpi-color',C[i%C.length]);d.innerHTML='<div class="kpi-value">'+fN(k.v)+'</div><div class="kpi-label">'+E(k.l)+'</div>';kr.appendChild(d)})}
+function buildViz(rows,cols,a){const g=document.getElementById('vizG');g.innerHTML='';killCharts();if(a.type==='none'||a.type==='to')return;const D={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#3A5470',font:{family:"'Plus Jakarta Sans',sans-serif",size:11,weight:'500'},padding:14,usePointStyle:true,pointStyleWidth:8}},tooltip:{backgroundColor:'#0F2540',titleColor:'#FFD447',bodyColor:'white',borderColor:'#1E5B8E',borderWidth:1,cornerRadius:10,padding:12,boxPadding:5,titleFont:{family:"'Fraunces',serif",weight:'700'}}}};const S=()=>({x:{grid:{color:'rgba(184,196,212,.3)',drawBorder:false},ticks:{color:'#7B8FA8',font:{family:"'Plus Jakarta Sans',sans-serif",size:10,weight:'500'}}},y:{grid:{color:'rgba(184,196,212,.3)',drawBorder:false},ticks:{color:'#7B8FA8',font:{family:"'Plus Jakarta Sans',sans-serif",size:10,weight:'500'}}}});if(a.type==='sr'&&a.nC.length>=2){mkC(g,'Distribution','doughnut','d1',{data:{labels:a.nC,datasets:[{data:a.nC.map(c=>Number(rows[0][c])),backgroundColor:C.slice(0,a.nC.length),borderWidth:3,borderColor:'white',hoverOffset:10}]},options:{...D,cutout:'60%',plugins:{...D.plugins,legend:{...D.plugins.legend,position:'bottom'}}}});return}if(a.type==='bp'||a.type==='b'){const lb=rows.map(r=>String(r[a.lCol])),pn=a.nC[0],vs=rows.map(r=>Number(r[pn]));mkC(g,pn+' by '+a.lCol,'bar','b1',{data:{labels:lb,datasets:[{label:pn,data:vs,backgroundColor:vs.map((_,i)=>C[i%C.length]),borderWidth:0,borderRadius:8,borderSkipped:false}]},options:{...D,indexAxis:rows.length>8?'y':'x',plugins:{...D.plugins,legend:{display:false}},scales:S()}});if(a.type==='bp'&&rows.length<=8)mkC(g,'Share','doughnut','p1',{data:{labels:lb,datasets:[{data:vs,backgroundColor:C.slice(0,vs.length),borderWidth:3,borderColor:'white',hoverOffset:10}]},options:{...D,cutout:'55%',plugins:{...D.plugins,legend:{...D.plugins.legend,position:'bottom'}}}});if(a.nC.length>=2){const sn=a.nC[1],v2=rows.map(r=>Number(r[sn]));mkC(g,sn+' by '+a.lCol,'bar','b2',{data:{labels:lb,datasets:[{label:sn,data:v2,backgroundColor:'#FFD447',borderColor:'#FFC107',borderWidth:0,borderRadius:8,borderSkipped:false}]},options:{...D,indexAxis:rows.length>8?'y':'x',plugins:{...D.plugins,legend:{display:false}},scales:S()}})}if(rows.length<=8&&rows.length>=3)mkC(g,'Polar view','polarArea','po1',{data:{labels:lb,datasets:[{data:vs,backgroundColor:C.slice(0,vs.length).map(c=>c+'99'),borderColor:C.slice(0,vs.length),borderWidth:2}]},options:{...D,plugins:{...D.plugins,legend:{...D.plugins.legend,position:'bottom'}},scales:{r:{grid:{color:'rgba(184,196,212,.4)'},ticks:{display:false}}}}});return}if(a.type==='bl'){const lb=rows.map(r=>String(r[a.lCol])),pn=a.nC[0],vs=rows.map(r=>Number(r[pn]));mkC(g,pn+' by '+a.lCol,'bar','bl1',{data:{labels:lb,datasets:[{label:pn,data:vs,backgroundColor:'#4DA8E8',borderWidth:0,borderRadius:6,borderSkipped:false}]},options:{...D,indexAxis:'y',plugins:{...D.plugins,legend:{display:false}},scales:{x:{grid:{color:'rgba(184,196,212,.3)',drawBorder:false},ticks:{color:'#7B8FA8',font:{size:9}}},y:{grid:{display:false},ticks:{color:'#7B8FA8',font:{size:9}}}}}},true);return}if(a.type==='no'&&rows.length<=30)mkC(g,'Overview','bar','nb',{data:{labels:rows.map((_,i)=>'Row '+(i+1)),datasets:a.nC.map((c,ci)=>({label:c,data:rows.map(r=>Number(r[c])),backgroundColor:C[ci%C.length],borderWidth:0,borderRadius:6,borderSkipped:false}))},options:{...D,scales:S()}},true)}
+function mkC(g,title,type,id,config,fw){const c=document.createElement('div');c.className='viz-card'+(fw?' fw':'');c.innerHTML='<div class="viz-card-header"><span class="viz-card-title">'+E(title)+'</span><span class="viz-card-badge">'+type+'</span></div><div class="viz-chart-container"></div>';g.appendChild(c);const cv=document.createElement('canvas');cv.id=id;c.querySelector('.viz-chart-container').appendChild(cv);chs.push(new Chart(cv.getContext('2d'),{type,...config}))}
+function buildTable(rows,cols){const s=document.getElementById('tScr');document.getElementById('rCnt').textContent=rows.length+' rows';if(!rows.length){s.innerHTML='<div style="padding:40px;text-align:center;color:var(--ink3)">No data.</div>';return}let h='<table class="data-table"><thead><tr><th>#</th>';cols.forEach(c=>h+='<th>'+E(c)+'</th>');h+='</tr></thead><tbody>';rows.forEach((r,i)=>{h+='<tr><td style="color:var(--ink4)">'+(i+1)+'</td>';cols.forEach((c,ci)=>{const v=r[c];h+='<td class="'+(isN(v)?'cell-number':(ci===0?'cell-highlight':''))+'">'+E(v!=null?(isN(v)?fN(v):v):'—')+'</td>'});h+='</tr>'});h+='</tbody></table>';s.innerHTML=h}
+function fmtAns(t){if(!t)return'';let h=E(t);h=h.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');h=h.replace(/(\d+)\.\s/g,'<br><strong>$1.</strong> ');h=h.replace(/\n/g,'<br>');return h}
+function toggleSql(){const b=document.getElementById('sqlB');b.classList.toggle('open');document.getElementById('sqlTI').textContent=b.classList.contains('open')?'▲':'▼'}
+function toggleHist(){document.getElementById('hPan').classList.toggle('open')}
+function addH(q,a){hist.unshift({q,a,t:new Date()});if(hist.length>20)hist.pop();renderH()}
+function renderH(){const l=document.getElementById('hList');if(!hist.length){l.innerHTML='<div class="history-empty">No queries yet.</div>';return}l.innerHTML=hist.map((h,i)=>'<div class="history-item" onclick="rerun('+i+')"><div class="history-item-q">'+E(h.q)+'</div><div class="history-item-time">'+h.t.toLocaleTimeString()+'</div></div>').join('')}
+function rerun(i){qIn.value=hist[i].q;qIn.dispatchEvent(new Event('input'));toggleHist();go()}
+async function go(){const q=qIn.value.trim();if(!q)return;sBtn.disabled=true;setSt('loading','Thinking…');showLoad();try{const res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,max_rows:50})});const data=await res.json();if(!res.ok)throw new Error(data.detail||'Failed');hideLoad();const rows=data.rows||[],cols=rows.length?Object.keys(rows[0]):[];const a=analyzeData(rows,cols);document.getElementById('resA').classList.add('visible');document.getElementById('empS').style.display='none';buildKPIs(rows,cols,a.nC||[]);buildTable(rows,cols);document.getElementById('ansT').innerHTML=fmtAns(data.answer);document.getElementById('sqlC').innerHTML=hSQL(data.sql||'');requestAnimationFrame(()=>{buildMap(detectGeo(rows,cols));buildViz(rows,cols,a);setTimeout(()=>document.getElementById('kpiR').scrollIntoView({behavior:'smooth',block:'start'}),100)});setSt('ok','Done');addH(q,data.answer)}catch(e){hideLoad();document.getElementById('resA').classList.remove('visible');document.getElementById('errC').classList.add('visible');document.getElementById('errM').textContent=e.message;setSt('error','Failed')}finally{sBtn.disabled=false}}
+</script>
+</body>
+</html>
