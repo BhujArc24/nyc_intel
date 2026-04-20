@@ -78,26 +78,26 @@ def sanitize_sql(sql_text: str) -> str:
 
 
 def build_human_answer(question: str, sql_query: str, rows: List[dict]) -> str:
-    prompt = f"""
-You are helping explain database query results to a user in plain English.
+    prompt = f"""Answer this question conversationally in 2-3 short sentences, like you're explaining to a friend. Be specific with numbers but natural.
 
-User question:
-{question}
+User asked: {question}
 
-SQL used:
-{sql_query}
-
-Rows returned:
+Data returned:
 {rows}
 
-Write:
-1. a short plain-English answer
-2. 1 to 3 key takeaways
-Do not mention that you are an AI.
-Do not repeat the raw SQL unless needed.
-Keep it concise.
-"""
-    resp = client.responses.create(model=OPENAI_MODEL, input=prompt, temperature=0.0)
+Write a natural, friendly response that:
+- Leads with the most interesting finding
+- Uses specific numbers from the data
+- Sounds human, not robotic
+- NO bullet points, NO numbered lists, NO "Key takeaway" labels
+- Just a flowing 2-3 sentence answer
+
+Example good response: "Manhattan had the most crimes reported with 147,832 incidents, followed closely by Brooklyn at 132,451. Interestingly, Staten Island had dramatically fewer — just 28,103 — which tracks with its smaller population."
+
+Example BAD response (don't do this): "1. A total of 579,573 crimes were reported. 2. - The data reflects..."
+
+Now write the answer:"""
+    resp = client.responses.create(model=OPENAI_MODEL, input=prompt, temperature=0.3)
     return resp.output_text
 
 
