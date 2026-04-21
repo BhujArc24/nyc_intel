@@ -743,7 +743,7 @@ const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.tar
 document.querySelectorAll('.section').forEach(s=>obs.observe(s));
 
 /* ===== APP ===== */
-const API="http://127.0.0.1:8000/ask",C=['#4DA8E8','#FFD447','#FF7A6B','#6BD1A8','#B899E8','#F8A15D','#5ECAD4','#FF9EAA','#84cc16','#A78BFA'];
+const API="/ask",C=['#4DA8E8','#FFD447','#FF7A6B','#6BD1A8','#B899E8','#F8A15D','#5ECAD4','#FF9EAA','#84cc16','#A78BFA'];
 let chs=[],hist=[],lM=null,mLG=null;
 const BORO={manhattan:{lat:40.7831,lng:-73.9712},brooklyn:{lat:40.6782,lng:-73.9442},queens:{lat:40.7282,lng:-73.7949},bronx:{lat:40.8448,lng:-73.8648},'staten island':{lat:40.5795,lng:-74.1502}};
 const BA={manhattan:'manhattan','new york':'manhattan',mn:'manhattan',brooklyn:'brooklyn',bk:'brooklyn',kings:'brooklyn',queens:'queens',qn:'queens',qns:'queens',bronx:'bronx',bx:'bronx','the bronx':'bronx','staten island':'staten island',si:'staten island',richmond:'staten island'};
